@@ -1,0 +1,101 @@
+package ru.mephi.sno.flow
+
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import org.slf4j.LoggerFactory
+import ru.mephi.sno.fetcher.GeneralFetcher
+
+class FlowBuilder {
+
+    companion object {
+        private val log = LoggerFactory.getLogger(FlowBuilder::class.java)
+    }
+
+    private var currentNode: FlowNode = FlowNode(
+        GeneralFetcher(),
+        mutableListOf(),
+        mutableListOf(),
+        NodeType.GROUP,
+    )
+
+    fun group(
+        condition: (FlowContext) -> Boolean = { true },
+        action: () -> Unit,
+    ) {
+        val lastStateNode = currentNode
+        currentNode = currentNode.addGroupNode(condition)
+        action()
+        currentNode = lastStateNode
+    }
+
+    fun whenComplete(
+        condition: (FlowContext) -> Boolean = { true },
+        action: () -> Unit,
+    ) {
+        val lastStateNode = currentNode
+        currentNode = currentNode.addWaitNode(condition)
+        action()
+        currentNode = lastStateNode
+    }
+
+    fun fetch(fetcherInstance: GeneralFetcher) {
+        // fetcherInstance.fetchMechanics() // вызывает метод фетчера, помеченный аннотацией @InjectData
+        // вызываться должно после построения графа!
+        currentNode.addFetcher(fetcherInstance)
+    }
+
+    suspend fun initAndRun(
+        node: FlowNode = currentNode,
+        flowContext: FlowContext,
+        vararg objectsToReset: Any,
+    ) {
+        objectsToReset.forEach {
+            // текущий экземпляр - новый, который передали в initAndRun()
+            // кладем его в контекст, чтобы была возможность менять его по ходу выполнения графа
+            if (!flowContext.containsBeanByType(it::class.java)) {
+                flowContext.insertObject(it)
+            }
+        }
+        run(node, flowContext)
+    }
+
+    private suspend fun run(
+        node: FlowNode = currentNode,
+        flowContext: FlowContext,
+    ) {
+        coroutineScope {
+            val toRun = mutableListOf<Any>()
+            node.children.forEach { children ->
+                // TODO: NodeType.FETCHER гарантирует ненулевой фетчер
+                if (children.nodeType == NodeType.FETCHER) {
+                    toRun.add(children.fetcher!!)
+                } else if (children.nodeType == NodeType.GROUP) {
+                    toRun.add(children)
+                } else if (children.nodeType == NodeType.WAIT) {
+                    val completedRun = toRun.map {
+                        async {
+                            when (it) {
+                                is GeneralFetcher -> it.fetchMechanics(flowContext)
+                                is FlowNode -> if (it.condition.invoke(flowContext)) run(it, flowContext)
+                            }
+                        }
+                    }
+                    completedRun.awaitAll()
+                    toRun.clear()
+                    toRun.add(children)
+                }
+            }
+            toRun.forEach {
+                launch {
+                    when (it) {
+                        is GeneralFetcher -> it.fetchMechanics(flowContext)
+                        is FlowNode -> if (it.condition.invoke(flowContext)) run(it, flowContext)
+                    }
+                }
+            }
+            toRun.clear()
+        }
+    }
+}
