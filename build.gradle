@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.kotlin.jvm' version '1.9.0'
     id 'maven-publish'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.0'
 }
 
 group = 'ru.mephi.sno'
@@ -11,6 +11,8 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17) // Устанавливаем целевую версию для Java
     }
+    withSourcesJar()
+    withJavadocJar()
 }
 
 repositories {
@@ -28,4 +30,17 @@ kotlin {
     jvmToolchain {
         languageVersion = JavaLanguageVersion.of(17) // Устанавливаем целевую версию для Kotlin
     }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+wrapper {
+    gradleVersion = "7.3.3"
+    distributionType = Wrapper.DistributionType.ALL
 }
