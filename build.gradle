@@ -4,6 +4,7 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.9.0'
 }
 
+
 group = 'ru.mephi.sno'
 version = '1.0-RELEASE'
 
@@ -41,6 +42,5 @@ publishing {
 }
 
 wrapper {
-    gradleVersion = "7.3.3"
-    distributionType = Wrapper.DistributionType.ALL
+    gradleVersion = '7.6'
 }
