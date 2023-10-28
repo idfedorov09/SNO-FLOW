@@ -24,32 +24,8 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.13.0'
 }
 
-test {
-    useJUnitPlatform()
-}
-
 kotlin {
     jvmToolchain {
         languageVersion = JavaLanguageVersion.of(17) // Устанавливаем целевую версию для Kotlin
-    }
-}
-
-afterEvaluate{ project ->
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                from components.java
-            }
-        }
-        repositories {
-            maven {
-                url = uri('http://51.250.68.42:8081/repository/maven-releases/')
-                credentials {
-                    username = "admin"
-                    password = "d5f51f4b-3ef3-40fb-8332-8523a1caa91c"
-                }
-                allowInsecureProtocol = true
-            }
-        }
     }
 }
