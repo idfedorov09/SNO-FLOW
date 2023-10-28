@@ -1,13 +1,16 @@
 plugins {
     id 'java'
     id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+    id 'maven-publish'
 }
 
 group = 'ru.mephi.sno'
-version = '1.0-SNAPSHOT'
+version = '1.0-RELEASE'
 
 java {
-    sourceCompatibility = '17'
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17) // Устанавливаем целевую версию для Java
+    }
 }
 
 repositories {
@@ -24,6 +27,29 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
 kotlin {
-    jvmToolchain(8)
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(17) // Устанавливаем целевую версию для Kotlin
+    }
+}
+
+afterEvaluate{ project ->
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            maven {
+                url = uri('http://51.250.68.42:8081/repository/maven-releases/')
+                credentials {
+                    username = "admin"
+                    password = "d5f51f4b-3ef3-40fb-8332-8523a1caa91c"
+                }
+                allowInsecureProtocol = true
+            }
+        }
+    }
 }
