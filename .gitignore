@@ -44,6 +44,4 @@ bin/
 
 
 ### OTHER ###
-/gradle/
-gradlew
 gradlew.bat
